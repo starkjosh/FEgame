@@ -1,23 +1,31 @@
 package blocks;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import enums.Team;
 import utilities.Tile;
 
 public class Battleground {
 
 	private int x_MAX;
 	private int y_MAX;
-	public Tile[] dimensions;
+	private int numOfHeroes;
+	private int numOfVillains;
+	private Tile[] dimensions;
 
 	public Battleground() {
 
 	}
 
-	public Battleground(int xMax, int yMax) {
+	public Battleground(int xMax, int yMax, int numOfHeroes, int numOfVillains) {
 		this.dimensions = new Tile[xMax * yMax];
-		populateBattleground(this.dimensions, xMax, yMax);
-
 		this.x_MAX = xMax;
 		this.y_MAX = yMax;
+		populateBattleground(this.dimensions, xMax, yMax);
+
+		this.numOfHeroes = numOfHeroes;
+		this.numOfVillains = numOfVillains;
 	}
 
 
@@ -68,48 +76,50 @@ public class Battleground {
 		return this;
 	}
 
+	public int getNumOfHeroes() {
+		return numOfHeroes;
+	}
 
+	public int getNumOfVillains() {
+		return numOfVillains;
+	}
 
 	public Battleground updateFighter(Fighter f, Battleground bg) {
 		int location = f.getCurrentLocation();
 		Tile[] dimensions = bg.getDimensions();
 
-		if(!f.getStatus()) {
+		if(!f.isAlive()) {
 			dimensions[location].setFighterOnTile(null).setOpen(true);
 			f.setCurrentLocation(8000000);
+			if(f.getTeam() == Team.GOOD){
+				this.numOfHeroes -= 1;
+			} else if(f.getTeam() == Team.BAD){
+				this.numOfVillains -= 1;
+			}
 		}
 
 		bg.setDimensions(dimensions);
 		return bg;
 	}
 
-	public Fighter[] findAdjacentEnemies(Fighter f, Battleground bg) {
+	public List<Fighter> findAdjacentEnemies(Fighter f) {
 		int fighterLocation = f.getCurrentLocation();
-		int enemyCount = 0;
-		Fighter[] enemies = new Fighter[4];
-		Tile[] dimensions = bg.getDimensions();
+		List<Fighter> enemies = new ArrayList<>();
 
 		if(isEnemyHere(fighterLocation - 1, f)) {
-			enemyCount += 1;
-			enemies[0] = dimensions[fighterLocation - 1].getFighterOnTile();
+			enemies.add(this.dimensions[fighterLocation - 1].getFighterOnTile());
 		}
-
 		if(isEnemyHere(fighterLocation + 1, f)) {
-			enemyCount += 1;
-			enemies[1] = dimensions[fighterLocation + 1].getFighterOnTile();
+			enemies.add(this.dimensions[fighterLocation + 1].getFighterOnTile());
+		}
+		if(isEnemyHere(fighterLocation + this.x_MAX, f)) {
+			enemies.add(this.dimensions[fighterLocation + this.x_MAX].getFighterOnTile());
+		}
+		if(isEnemyHere(fighterLocation - this.x_MAX, f)) {
+			enemies.add(this.dimensions[fighterLocation - this.x_MAX].getFighterOnTile());
 		}
 
-		if(isEnemyHere(fighterLocation + bg.getX_Max(), f)) {
-			enemyCount += 1;
-			enemies[2] = this.dimensions[fighterLocation + bg.getX_Max()].getFighterOnTile();
-		}
-
-		if(isEnemyHere(fighterLocation - bg.getX_Max(), f)) {
-			enemyCount += 1;
-			enemies[3] = this.dimensions[fighterLocation - bg.getX_Max()].getFighterOnTile();
-		}
-
-		if(enemyCount == 0) {
+		if(enemies.isEmpty()) {
 			return null;
 		}
 		return enemies;
@@ -136,6 +146,10 @@ public class Battleground {
 					.setX_val(i % xMax)
 					.setY_val(i / yMax);
 			bg[i] = tile;
+		}
+
+		for(int j = 0; j < bg.length; j++){
+			bg[j].setAdjacentTiles(this);
 		}
 	}
 

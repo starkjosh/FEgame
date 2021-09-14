@@ -123,7 +123,7 @@ public class Fighter {
 		return this;
 	}
 
-	public boolean getStatus() {
+	public boolean isAlive() {
 		return isAlive;
 	}
 

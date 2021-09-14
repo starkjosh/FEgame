@@ -1,5 +1,8 @@
 package blocks;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 import actions.Fight;
@@ -7,30 +10,31 @@ import actions.Move;
 import enums.Difficulty;
 import enums.Team;
 import utilities.CircularList;
+import utilities.Tile;
 
 public class Battle {
 
 	private boolean isWon = false;
 	private Difficulty difficulty;
-	private int numOfHeroes;
-	private int numOfVillains;
 	private Battleground bg;
 	private CircularList turn = new CircularList();
 	private Move move = new Move();
 	private Fight fight = new Fight();
+	private List<Fighter> goodies = new ArrayList<>();
+	private List<Fighter> baddies = new ArrayList<>();
 
 
 	public void buildGame(String diff) {
 		setDifficulty(diff);
 		if (this.difficulty == Difficulty.valueOf("EASY")) {
 
-			numOfHeroes = 3;
-			numOfVillains = 3;
+			int numOfHeroes = 3;
+			int numOfVillains = 3;
 
-			bg = new Battleground(5, 5);
+			bg = new Battleground(5, 5, numOfHeroes, numOfVillains);
 
-			Fighter h1 = new Fighter(30, 5, "GOOD", "Roland");
-			Fighter h2 = new Fighter(30, 5, "GOOD", "Noctis");
+			Fighter h1 = new Fighter(30, 5, "GOOD", "Pacman");
+			Fighter h2 = new Fighter(30, 5, "GOOD", "Mario");
 			Fighter h3 = new Fighter(30, 5, "GOOD", "Batman");
 			Fighter v1 = new Fighter(20, 4, "BAD", "Goomba", 70);
 			Fighter v2 = new Fighter(20, 4, "BAD", "Penguin", 70);
@@ -50,6 +54,14 @@ public class Battle {
 			turn.addNode(v2);
 			turn.addNode(v3);
 
+			goodies.add(h1);
+			goodies.add(h2);
+			goodies.add(h3);
+
+			baddies.add(v1);
+			baddies.add(v2);
+			baddies.add(v3);
+
 		}
 	}
 
@@ -59,47 +71,51 @@ public class Battle {
 		Fighter f = turn.getNextTurn();
 
 		if (f.getTeam() == Team.GOOD) {
-
-			System.out.println(f.getName() + " would you like to move? (y/n)");
-			if (input.next().equalsIgnoreCase("y")) {							//switch statement
-				while (true) {
-					System.out.println("What space would you like to move to?");
-					int location = input.nextInt();
-
-					Battleground placeholder = move.moveFighter(f, bg, location);
-					if (placeholder != null) {
-						bg = placeholder;
-						break;
-					} else {
-						System.out.println("Please choose another space to move to.");
-						printMap();
-					}
-				}
+			System.out.println(f.getName() + ", what would you like to do?");
+			ArrayList<String> validCommands = new ArrayList<>();
+			if (bg.findAdjacentEnemies(f) != null) {
+				validCommands.add("Attack");
 			}
-
-			printMap();
-
-			System.out.println("Would you like to attack? (y/n)");
-			if (input.next().equalsIgnoreCase("y")) {
-				Fighter[] enemies = bg.findAdjacentEnemies(f, bg);
-				if (enemies == null) {
-					System.out.println("There is no one you can fight.");
-				} else {
-					System.out.println("Who would you like to fight?");
-
-					for (int i = 0; i < enemies.length; i++) {
-						if (enemies[i] != null) {
-							System.out.println(i + ") '" + enemies[i].getName() + "' HP: " + enemies[i].getHp()
-									/*+ " Accuracy: " + enemies[i].getAccuracy() + " Strength: " + enemies[i].getStrength()*/);
+			validCommands.add("Move");
+			validCommands.add("Idle");
+			while (true) {
+				System.out.println("Command options: " + validCommands.toString());
+				String action = input.next().toUpperCase();
+				switch (action) {
+					case "ATTACK":
+						attackLogic(f, input);
+						validCommands.remove("Attack");
+						validCommands.remove("Move");
+						if (isWon == true) {
+							return;
 						}
-					}
-					int e = input.nextInt();
-					bg = fight.melee(f, enemies[e], bg);
+						break;
+
+					case "MOVE":
+						moveLogic(f, input);
+						validCommands.remove("Move");
+						if (bg.findAdjacentEnemies(f) != null) {
+							validCommands.add(0, "Attack");
+						}
+						break;
+
+					case "IDLE":
+						return;
+
+					default:
+						System.out.println("Please enter a valid command");
 				}
 			}
-			checkIfWon();
+		} else {
+			if (bg.findAdjacentEnemies(f) != null) {
+				enemyAttackEasy(f, bg);
+			} else {
+				int closestEnemy = findClosestEnemy(f, this.goodies);
+				if(enemyMoveEasy(f, closestEnemy)){
+					enemyAttackEasy(f, bg);
+				}
+			}
 		}
-
 	}
 
 	public boolean getIsWon() {
@@ -108,26 +124,6 @@ public class Battle {
 
 	public Difficulty getDifficulty() {
 		return difficulty;
-	}
-
-	public int getNumOfHeroes() {
-		return numOfHeroes;
-	}
-
-	public void setNumOfHeroes(int numOfHeroes) {
-		this.numOfHeroes = numOfHeroes;
-	}
-
-	public int getNumOfVillains() {
-		return numOfVillains;
-	}
-
-	public void setNumOfVillains(int numOfVillains) {
-		this.numOfVillains = numOfVillains;
-	}
-
-	public void setWon(boolean isWon) {
-		this.isWon = isWon;
 	}
 
 	public void setDifficulty(String difficulty) {
@@ -139,23 +135,13 @@ public class Battle {
 	}
 
 	public void checkIfWon() {
-		numOfHeroes = 0;
-		numOfVillains = 0;
-		for (int i = 0; i < bg.getX_Max() * bg.getY_Max(); i++) {
-			if (bg.dimensions[i].getFighterOnTile() != null) {
-				if (bg.dimensions[i].getFighterOnTile().getTeam() == Team.GOOD) {
-					numOfHeroes += 1;
-				} else {
-					numOfVillains += 1;
-				}
-			}
+		int heroes = this.bg.getNumOfHeroes();
+		int baddies = this.bg.getNumOfVillains();
 
-		}
-
-		if (numOfHeroes == 0) {
+		if (heroes <= 0) {
 			System.out.println("You have been defeated.");
 			isWon = true;
-		} else if (numOfVillains == 0) {
+		} else if (baddies <= 0) {
 			System.out.println("Congrats! You won! Come play again soon.");
 			isWon = true;
 		}
@@ -165,20 +151,107 @@ public class Battle {
 	public void printMap() {
 
 		for (int i = 0; i < bg.getX_Max() * bg.getY_Max(); i++) {
-			if(i % bg.getX_Max() == 0){
+			if (i % bg.getX_Max() == 0) {
 				System.out.println();
 			}
-			if (bg.dimensions[i].getFighterOnTile() != null) {
-				System.out.print("| " + bg.dimensions[i].getFighterOnTile().getName() + "\t |");
+			if (bg.getDimensions()[i].getFighterOnTile() != null) {
+				System.out.print("| " + bg.getDimensions()[i].getFighterOnTile().getName() + "\t |");
 			} else {
-				System.out.print("| \t" + bg.dimensions[i].getLocation() + "\t |");
+				System.out.print("| \t" + bg.getDimensions()[i].getLocation() + "\t |");
 			}
-
 		}
-
-		System.out.println("");
-		System.out.println("");
+		System.out.println();
+		System.out.println();
 	}
 
+	private void attackLogic(Fighter f, Scanner input) {
+		List<Fighter> enemies = bg.findAdjacentEnemies(f);
+		while (true) {
+			System.out.println("Who would you like to attack?");
 
+			for (int i = 0; i < enemies.size(); i++) {
+				System.out.println(i + ") '" + enemies.get(i).getName() + "' HP: " + enemies.get(i).getHp()
+						/*+ " Accuracy: " + enemies.get(i).getAccuracy() + " Strength: " + enemies.get(i).getStrength()*/);
+			}
+			int enemyToFight = input.nextInt();
+			if (0 <= enemyToFight && enemyToFight <= 3) {
+				bg = fight.melee(f, enemies.get(enemyToFight), bg);
+
+				if (!enemies.get(enemyToFight).isAlive()) {
+					turn.deleteNode(enemies.get(enemyToFight));
+				}
+				break;
+			} else {
+				System.out.println("Please pick a valid opponent.");
+			}
+		}
+		checkIfWon();
+	}
+
+	private void moveLogic(Fighter f, Scanner input) {
+		while (true) {
+			System.out.println("What space would you like to move to?");
+			int location = input.nextInt();
+
+			Battleground placeholder = move.moveFighter(f, bg, location);
+			if (placeholder != null) {
+				bg = placeholder;
+				printMap();
+				break;
+			} else {
+				System.out.println("Please choose another space to move to.");
+				printMap();
+			}
+		}
+	}
+
+	private void enemyAttackEasy(Fighter f, Battleground bg) {
+		List<Fighter> targets = bg.findAdjacentEnemies(f);
+		for (int i = 0; i < targets.size(); i++) {
+			if (i == targets.size() - 1) {            //Always attack the last person if you make it this far.
+				System.out.println(f.getName() + " is attacking " + targets.get(i).getName());
+				fight.melee(f, targets.get(i), bg);
+				return;
+			}
+
+			Random random = new Random();
+			if (random.nextInt(1) == 1) {
+				fight.melee(f, targets.get(i), bg);
+				return;
+			}
+		}
+	}
+
+	private int findClosestEnemy(Fighter f, List<Fighter> targets) {
+		int closestTarget = 100;
+		int compareValue = 0;
+		int targetLocation = 100;
+		for (int i = 0; i < targets.size(); i++) {
+			for(int j = 0; j < 4; j++) {
+				compareValue = move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()],
+						bg.getDimensions()[targets.get(i).getCurrentLocation()].getAdjacentTiles()[j], f.getTeam());
+				if (compareValue < closestTarget) {
+					closestTarget = compareValue;
+					targetLocation = bg.getDimensions()[closestTarget].getLocation();
+				}
+			}
+		}
+		return targetLocation;
+	}
+
+	private boolean enemyMoveEasy(Fighter f, int closestTarget) {
+		if (move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[closestTarget - 1], f.getTeam()) > f.getMovement() + 1) {
+			return false; //Don't move if nothing in range
+		} else if(move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[closestTarget - 1], f.getTeam()) == 1){
+			return true; //Don't move because already next to target
+		}
+
+		Tile fighterTile = bg.getDimensions()[f.getCurrentLocation()];
+		Tile targetTile = bg.getDimensions()[closestTarget - 1];
+
+		if(move.moveFighter(f, bg, closestTarget) != null){
+			return true;
+		}
+		return false;
+	}
 }

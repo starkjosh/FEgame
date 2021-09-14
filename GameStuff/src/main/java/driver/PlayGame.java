@@ -12,23 +12,14 @@ public class PlayGame {
 		Scanner reader = new Scanner(System.in);
 
 		System.out.println("What difficulty would you like to play?");
-
 		String diff = reader.next().toUpperCase();
 
 		battle.buildGame(diff);
 
-
-
 		while(!battle.getIsWon()) {
-
 			battle.nextTurn(reader);
-
-
 		}
-
 		reader.close();
-
-
 	}
 
 }

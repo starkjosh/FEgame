@@ -1,5 +1,6 @@
 package utilities;
 
+import blocks.Battleground;
 import blocks.Fighter;
 import enums.TerrainType;
 
@@ -11,6 +12,7 @@ public class Tile {
 	private int x_val;
 	private int y_val;
 	private boolean open = true;
+	private Tile[] adjacentTiles = new Tile[4];
 
 	public Fighter getFighterOnTile() {
 		return fighterOnTile;
@@ -66,12 +68,33 @@ public class Tile {
 		return this;
 	}
 
-	public String printTile(Tile tile){
+	public Tile[] getAdjacentTiles() {
+		return adjacentTiles;
+	}
+
+	public Tile setAdjacentTiles(Battleground map) {
+		if(this.location % map.getX_Max() > 1){
+			this.adjacentTiles[0] = map.getDimensions()[this.location - 2];
+		}
+		if(this.location - map.getX_Max() > 0){
+			this.adjacentTiles[1] = map.getDimensions()[this.location - map.getX_Max() - 1];
+		}
+		if(this.location % map.getX_Max() != 0){
+			this.adjacentTiles[2] = map.getDimensions()[this.location];
+		}
+		if(this.location + map.getX_Max() < map.getX_Max() * map.getY_Max()){
+			this.adjacentTiles[3] = map.getDimensions()[this.location + map.getX_Max() - 1];
+		}
+
+		return this;
+	}
+
+	public String printTile(){
 		String printer = "";
-		if(tile.getFighterOnTile() == null) {
-			printer = "|\t" + tile.getLocation() + "\t";
+		if(this.getFighterOnTile() == null) {
+			printer = "|\t" + this.getLocation() + "\t |";
 		} else {
-			printer = "|\t" + tile.getFighterOnTile().getName() + "\t";
+			printer = "|\t" + this.getFighterOnTile().getName() + "\t |";
 		}
 
 		return printer;
