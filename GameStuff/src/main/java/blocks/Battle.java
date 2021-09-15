@@ -30,9 +30,9 @@ public class Battle {
 		if (this.difficulty == Difficulty.valueOf("EASY")) {
 
 			int numOfHeroes = 3;
-			int numOfVillains = 3;
+			int numOfVillains = 5;
 
-			bg = new Battleground(5, 5, numOfHeroes, numOfVillains);
+			bg = new Battleground(6, 6, numOfHeroes, numOfVillains);
 
 			Fighter h1 = new Fighter(30, 5, "GOOD", "Pacman");
 			Fighter h2 = new Fighter(30, 5, "GOOD", "Mario");
@@ -40,13 +40,17 @@ public class Battle {
 			Fighter v1 = new Fighter(20, 4, "BAD", "Goomba", 70);
 			Fighter v2 = new Fighter(20, 4, "BAD", "Penguin", 70);
 			Fighter v3 = new Fighter(20, 4, "BAD", "Clyde", 70);
+			Fighter v4 = new Fighter(20, 4, "BAD", "Ghoul", 70);
+			Fighter v5 = new Fighter(20, 4, "BAD", "Goblin", 70);
 
-			bg.placeFighter(h1, 17);
-			bg.placeFighter(h2, 23);
-			bg.placeFighter(h3, 19);
-			bg.placeFighter(v1, 2);
-			bg.placeFighter(v2, 3);
-			bg.placeFighter(v3, 4);
+			bg.placeFighter(h1, 26);
+			bg.placeFighter(h2, 33);
+			bg.placeFighter(h3, 28);
+			bg.placeFighter(v1, 3);
+			bg.placeFighter(v2, 4);
+			bg.placeFighter(v3, 5);
+			bg.placeFighter(v4, 8);
+			bg.placeFighter(v5, 11);
 
 			turn.addNode(h1);
 			turn.addNode(h2);
@@ -54,6 +58,8 @@ public class Battle {
 			turn.addNode(v1);
 			turn.addNode(v2);
 			turn.addNode(v3);
+			turn.addNode(v4);
+			turn.addNode(v5);
 
 			goodies.add(h1);
 			goodies.add(h2);
@@ -62,18 +68,21 @@ public class Battle {
 			baddies.add(v1);
 			baddies.add(v2);
 			baddies.add(v3);
+			baddies.add(v4);
+			baddies.add(v5);
 
 		}
 	}
 
 	public void nextTurn(Scanner input) {
 
-		printMap();
 		Fighter f = turn.getNextTurn();
 		if(!f.isAlive()){
 			turn.deleteNode(f);
 			return;
 		}
+
+		printMap();
 
 		if (f.getTeam() == Team.GOOD) {
 			System.out.println(f.getName() + ", what would you like to do?");

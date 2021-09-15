@@ -13,6 +13,7 @@ public class Fight {
 		double attackChance = chance.nextDouble() * 100;
 		if(attacker.getAccuracy() > attackChance) {
 			defender.takeHit(attacker.getStrength());
+			System.out.println(defender.getName() + " took " + attacker.getStrength() + " damage.");
 		} else{
 			System.out.println(attacker.getName() + " missed.");
 		}
