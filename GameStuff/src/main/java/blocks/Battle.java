@@ -9,6 +9,7 @@ import actions.Fight;
 import actions.Move;
 import enums.Difficulty;
 import enums.Team;
+import org.apache.commons.lang3.StringUtils;
 import utilities.CircularList;
 import utilities.Tile;
 
@@ -69,6 +70,10 @@ public class Battle {
 
 		printMap();
 		Fighter f = turn.getNextTurn();
+		if(!f.isAlive()){
+			turn.deleteNode(f);
+			return;
+		}
 
 		if (f.getTeam() == Team.GOOD) {
 			System.out.println(f.getName() + ", what would you like to do?");
@@ -94,7 +99,7 @@ public class Battle {
 					case "MOVE":
 						moveLogic(f, input);
 						validCommands.remove("Move");
-						if (bg.findAdjacentEnemies(f) != null) {
+						if (bg.findAdjacentEnemies(f) != null && !validCommands.contains("Attack")) {
 							validCommands.add(0, "Attack");
 						}
 						break;
@@ -155,9 +160,11 @@ public class Battle {
 				System.out.println();
 			}
 			if (bg.getDimensions()[i].getFighterOnTile() != null) {
-				System.out.print("| " + bg.getDimensions()[i].getFighterOnTile().getName() + "\t |");
+				System.out.print("|"+ StringUtils.center( bg.getDimensions()[i].getFighterOnTile().getName()
+						+ " (" + bg.getDimensions()[i].getFighterOnTile().getHp() + "/"
+						+ bg.getDimensions()[i].getFighterOnTile().getMaxHP() + ")", 18) + "|");
 			} else {
-				System.out.print("| \t" + bg.getDimensions()[i].getLocation() + "\t |");
+				System.out.print("|" + StringUtils.center(Integer.toString(bg.getDimensions()[i].getLocation()), 18) + "|");
 			}
 		}
 		System.out.println();
@@ -191,16 +198,21 @@ public class Battle {
 	private void moveLogic(Fighter f, Scanner input) {
 		while (true) {
 			System.out.println("What space would you like to move to?");
-			int location = input.nextInt();
+			if(input.hasNextInt()) {
+				int location = input.nextInt();
 
-			Battleground placeholder = move.moveFighter(f, bg, location);
-			if (placeholder != null) {
-				bg = placeholder;
-				printMap();
-				break;
+				Battleground placeholder = move.moveFighter(f, bg, location);
+				if (placeholder != null) {
+					bg = placeholder;
+					printMap();
+					break;
+				} else {
+					System.out.println("Please choose another space to move to.");
+					printMap();
+				}
 			} else {
-				System.out.println("Please choose another space to move to.");
-				printMap();
+				System.out.println("Please enter the number of the space you want to move to.");
+				input.next();
 			}
 		}
 	}
@@ -215,7 +227,8 @@ public class Battle {
 			}
 
 			Random random = new Random();
-			if (random.nextInt(1) == 1) {
+			if (random.nextInt(2) == 1) {
+				System.out.println(f.getName() + " is attacking " + targets.get(i).getName());
 				fight.melee(f, targets.get(i), bg);
 				return;
 			}
@@ -232,7 +245,7 @@ public class Battle {
 						bg.getDimensions()[targets.get(i).getCurrentLocation()].getAdjacentTiles()[j], f.getTeam());
 				if (compareValue < closestTarget) {
 					closestTarget = compareValue;
-					targetLocation = bg.getDimensions()[closestTarget].getLocation();
+					targetLocation = bg.getDimensions()[targets.get(i).getCurrentLocation()].getAdjacentTiles()[j].getLocation();
 				}
 			}
 		}
@@ -242,8 +255,6 @@ public class Battle {
 	private boolean enemyMoveEasy(Fighter f, int closestTarget) {
 		if (move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[closestTarget - 1], f.getTeam()) > f.getMovement() + 1) {
 			return false; //Don't move if nothing in range
-		} else if(move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[closestTarget - 1], f.getTeam()) == 1){
-			return true; //Don't move because already next to target
 		}
 
 		Tile fighterTile = bg.getDimensions()[f.getCurrentLocation()];

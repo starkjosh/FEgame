@@ -10,6 +10,7 @@ public class Fighter {
 	private int speed;
 	private boolean isBoss;
 	private int hp;
+	private int maxHP;
 	private double accuracy;
 	private int movement;
 	private Team team;
@@ -26,6 +27,7 @@ public class Fighter {
 
 	public Fighter(int hp, int movement, String team, String name, double accuracy) {
 		this.setHp(hp)
+			.setMaxHP(hp)
 			.setMovement(movement)
 			.setTeam(team)
 			.setName(name)
@@ -43,6 +45,15 @@ public class Fighter {
 
 	public Fighter setHp(int hp) {
 		this.hp = hp;
+		return this;
+	}
+
+	public int getMaxHP() {
+		return maxHP;
+	}
+
+	public Fighter setMaxHP(int maxHP) {
+		this.maxHP = maxHP;
 		return this;
 	}
 

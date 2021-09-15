@@ -13,9 +13,8 @@ public class Fight {
 		double attackChance = chance.nextDouble() * 100;
 		if(attacker.getAccuracy() > attackChance) {
 			defender.takeHit(attacker.getStrength());
-
 		} else{
-			System.out.println("You missed.");
+			System.out.println(attacker.getName() + " missed.");
 		}
 
 		bg = bg.updateFighter(defender, bg);
