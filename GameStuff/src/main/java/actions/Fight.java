@@ -18,7 +18,7 @@ public class Fight {
 			System.out.println(attacker.getName() + " missed.");
 		}
 
-		bg = bg.updateFighter(defender, bg);
+		bg = bg.updateFighter(defender);
 		return bg;
 
 	}
@@ -33,7 +33,7 @@ public class Fight {
 	public Battleground range(Fighter attacker, Fighter defender, Battleground bg) {
 		double attackChance = chance.nextDouble() * 100;
 
-		bg = bg.updateFighter(defender, bg);
+		bg = bg.updateFighter(defender);
 		return bg;
 	}
 

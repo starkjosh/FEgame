@@ -10,4 +10,5 @@ public class Node {
 	public Node(Fighter fighter){
 		this.value = fighter;
 	}
+
 }

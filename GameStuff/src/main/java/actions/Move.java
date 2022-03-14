@@ -21,26 +21,25 @@ public class Move {
 		if (targetLocation < 1) {
 			System.out.println("Please specify a valid coordinate on the map.");
 			return null;
-		}
-
-		if (targetLocation > bg.getX_Max() * bg.getY_Max()) {
+		} else if (targetLocation > bg.getX_Max() * bg.getY_Max()) {
 			System.out.println("Please specify a valid coordinate on the map.");
 			return null;
+		} else if(!bg.isSpaceOpen(targetLocation)){
+			System.out.println("Someone is already in that spot.");
+			return null;
 		}
+		Tile fighterTile = bg.getTileByLocation(f.getCurrentLocation());
+		Tile targetTile = bg.getTileByLocation(targetLocation);
 
-		int distance = calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[targetLocation - 1], f.getTeam());
+		int distance = calculateDistance(bg.getDimensions()[fighterTile.getY_val()][fighterTile.getX_val()],
+				bg.getDimensions()[targetTile.getY_val()][targetTile.getX_val()], f.getTeam());
 		if (distance > f.getMovement()) {
 			System.out.println("That is farther than you are allowed to move.");
 			return null;
 		}
 
-		if (bg.isSpaceOpen(targetLocation, bg)) {
-			bg.getDimensions()[f.getCurrentLocation()].setFighterOnTile(null).setOpen(true);
-			bg.placeFighter(f, targetLocation);
-		} else {
-			System.out.println("Someone is already in that spot.");
-			return null;
-		}
+		fighterTile.setFighterOnTile(null).setOpen(true);
+		bg.placeFighter(f, targetLocation);
 
 		return bg;
 	}
@@ -50,19 +49,47 @@ public class Move {
 		return calculateDistanceRecursive(startingTile, destination, myTeam, 0, alreadyVisited);
 	}
 
-//	private List<Tile> findValidSpacesToMove(int currentLocation, Battleground bg) {
-//		Tile[] dimensions = bg.getDimensions();
-//		List<Tile> spacesToMove = new ArrayList<>();
-//		Fighter mover = dimensions[currentLocation].getFighterOnTile();
-//
-//		for (int movementLocation = 0; movementLocation < dimensions.length; movementLocation++) {
-//			if (calculateDistance(currentLocation, movementLocation, bg) <= mover.getMovement()
-//					&& dimensions[movementLocation].isOpen()) {
-//				spacesToMove.add(dimensions[movementLocation]);
-//			}
-//		}
-//		return spacesToMove;
-//	}
+	public List<Tile> findValidSpacesToMove(Battleground bg, Fighter fighter) {
+		Tile[][] dimensions = bg.getDimensions();
+		List<Tile> spacesToMove = new ArrayList<>();
+		int maxMovement = fighter.getMovement();
+		Tile fighterTile = bg.getTileByLocation(fighter.getCurrentLocation());
+
+		for (int xDist = -maxMovement; xDist <= maxMovement; xDist++){
+
+			if((0 > fighterTile.getX_val() + xDist) || (fighterTile.getX_val() + xDist >= bg.getX_Max())) {
+				continue;
+			}
+			if(xDist != 0) {
+				Tile potentialMove = dimensions[fighterTile.getY_val()][fighterTile.getX_val() + xDist];
+
+				if (calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()) {
+					spacesToMove.add(potentialMove);
+				}
+			}
+
+			for(int yDist = 1; yDist <= maxMovement - Math.abs(xDist); yDist++){
+				//checking up
+				if(0 <= fighterTile.getY_val() - yDist){
+					Tile potentialMove = dimensions[fighterTile.getY_val() - yDist][fighterTile.getX_val() + xDist];
+
+					if(calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
+						spacesToMove.add(potentialMove);
+					}
+				}
+				//checking down
+				if(fighterTile.getY_val() + yDist < bg.getY_Max()){
+					Tile potentialMove = dimensions[fighterTile.getY_val() + yDist][fighterTile.getX_val() + xDist];
+
+					if(calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
+						spacesToMove.add(potentialMove);
+					}
+				}
+			}
+		}
+
+		return spacesToMove;
+	}
 
 	private int calculateDistanceRecursive(Tile currentTile, Tile destination, Team team, int distance, List<Tile> alreadyVisited) {
 		if (currentTile.equals(destination) && currentTile.isOpen()) {

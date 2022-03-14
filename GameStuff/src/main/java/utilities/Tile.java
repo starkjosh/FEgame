@@ -7,12 +7,13 @@ import enums.TerrainType;
 public class Tile {
 
 	private Fighter fighterOnTile;
-	private TerrainType terrainType;
+	private TerrainType terrainType = TerrainType.PLAIN;
 	private int location;
 	private int x_val;
 	private int y_val;
 	private boolean open = true;
 	private Tile[] adjacentTiles = new Tile[4];
+	private Stats terrainBonus;
 
 	public Fighter getFighterOnTile() {
 		return fighterOnTile;
@@ -29,6 +30,7 @@ public class Tile {
 
 	public Tile setTerrainType(TerrainType terrainType) {
 		this.terrainType = terrainType;
+		setTerrainBonus();
 		return this;
 	}
 
@@ -74,19 +76,41 @@ public class Tile {
 
 	public Tile setAdjacentTiles(Battleground map) {
 		if(this.location % map.getX_Max() > 1){
-			this.adjacentTiles[0] = map.getDimensions()[this.location - 2];
+			this.adjacentTiles[0] = map.getDimensions()[this.y_val][this.x_val - 1];
 		}
 		if(this.location - map.getX_Max() > 0){
-			this.adjacentTiles[1] = map.getDimensions()[this.location - map.getX_Max() - 1];
+			this.adjacentTiles[1] = map.getDimensions()[this.y_val - 1][this.x_val];
 		}
 		if(this.location % map.getX_Max() != 0){
-			this.adjacentTiles[2] = map.getDimensions()[this.location];
+			this.adjacentTiles[2] = map.getDimensions()[this.y_val][this.x_val + 1];
 		}
 		if(this.location + map.getX_Max() < map.getX_Max() * map.getY_Max()){
-			this.adjacentTiles[3] = map.getDimensions()[this.location + map.getX_Max() - 1];
+			this.adjacentTiles[3] = map.getDimensions()[this.y_val + 1][this.x_val];
 		}
 
 		return this;
+	}
+
+	public Stats getTerrainBonus() {
+		return terrainBonus;
+	}
+
+	public void setTerrainBonus() {
+		Stats bonus = new Stats();
+		switch(this.terrainType) {
+			case PLAIN:
+				break;
+			case FOREST:
+				bonus.setAccuracyChange(-10).setMovementChange(-1);
+				break;
+			case MOUNTAIN:
+				bonus.setAccuracyChange(-30).setMovementChange(-4).setSpeedChange(-20);
+				break;
+			case FORTRESS:
+				bonus.setAccuracyChange(-20).setMovementChange(-1).setDefenceChange(3);
+
+		}
+		this.terrainBonus = bonus;
 	}
 
 	public String printTile(){

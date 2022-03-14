@@ -37,6 +37,7 @@ public class CircularList {
 				}
 				return;
 			}
+			currentNode = currentNode.nextNode;
 		} while(currentNode != head);
 	}
 

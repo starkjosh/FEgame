@@ -10,6 +10,7 @@ import actions.Move;
 import enums.Difficulty;
 import enums.Team;
 import org.apache.commons.lang3.StringUtils;
+import utilities.ANSIColors;
 import utilities.CircularList;
 import utilities.Tile;
 
@@ -81,8 +82,9 @@ public class Battle {
 			turn.deleteNode(f);
 			return;
 		}
+		List<Tile> movablePlaces = move.findValidSpacesToMove(bg, f);
 
-		printMap();
+		printMapWithMovableSpaces(movablePlaces, f.getTeam());
 
 		if (f.getTeam() == Team.GOOD) {
 			System.out.println(f.getName() + ", what would you like to do?");
@@ -110,6 +112,8 @@ public class Battle {
 						validCommands.remove("Move");
 						if (bg.findAdjacentEnemies(f) != null && !validCommands.contains("Attack")) {
 							validCommands.add(0, "Attack");
+						} else {
+							validCommands.remove("Attack");
 						}
 						break;
 
@@ -168,12 +172,42 @@ public class Battle {
 			if (i % bg.getX_Max() == 0) {
 				System.out.println();
 			}
-			if (bg.getDimensions()[i].getFighterOnTile() != null) {
-				System.out.print("|"+ StringUtils.center( bg.getDimensions()[i].getFighterOnTile().getName()
-						+ " (" + bg.getDimensions()[i].getFighterOnTile().getHp() + "/"
-						+ bg.getDimensions()[i].getFighterOnTile().getMaxHP() + ")", 18) + "|");
+			if (bg.getDimensions()[i / bg.getX_Max()][i % bg.getX_Max()].getFighterOnTile() != null) {
+				Fighter f = bg.getDimensions()[i / bg.getX_Max()][i % bg.getX_Max()].getFighterOnTile();
+				System.out.print("|"+ StringUtils.center( f.getName() + " (" + f.getHp() + "/"
+						+f.getMaxHP() + ")", 18) + "|");
 			} else {
-				System.out.print("|" + StringUtils.center(Integer.toString(bg.getDimensions()[i].getLocation()), 18) + "|");
+				System.out.print("|" + StringUtils.center(Integer.toString(bg.getDimensions()[i / bg.getX_Max()][i % bg.getX_Max()].getLocation()), 18) + "|");
+			}
+		}
+		System.out.println();
+		System.out.println();
+	}
+
+	public void printMapWithMovableSpaces(List<Tile> movableSpaces, Team fighterTeam) {
+
+		for (int i = 0; i < bg.getX_Max() * bg.getY_Max(); i++) {
+			if (i % bg.getX_Max() == 0) {
+				System.out.println();
+			}
+			Tile tileToPrint = bg.getTileByLocation(i + 1);
+			if (tileToPrint.getFighterOnTile() != null) {
+				Fighter f = tileToPrint.getFighterOnTile();
+				if (tileToPrint.getFighterOnTile().getTeam() != fighterTeam){
+					System.out.print("|"+ ANSIColors.ANSI_RED + StringUtils.center( f.getName() + " (" + f.getHp() + "/"
+							+f.getMaxHP() + ")", 18) + ANSIColors.ANSI_RESET + "|");
+				} else {
+					System.out.print("|"+ ANSIColors.ANSI_GREEN + StringUtils.center( f.getName() + " (" + f.getHp() + "/"
+							+f.getMaxHP() + ")", 18) + ANSIColors.ANSI_RESET + "|");
+				}
+			} else {
+				if(movableSpaces.contains(tileToPrint)){
+					System.out.print("|" + ANSIColors.ANSI_BLUE +
+							StringUtils.center(Integer.toString(tileToPrint.getLocation()), 18)
+							+ ANSIColors.ANSI_RESET + "|");
+				} else {
+					System.out.print("|" + StringUtils.center(Integer.toString(tileToPrint.getLocation()), 18) + "|");
+				}
 			}
 		}
 		System.out.println();
@@ -195,6 +229,7 @@ public class Battle {
 
 				if (!enemies.get(enemyToFight).isAlive()) {
 					turn.deleteNode(enemies.get(enemyToFight));
+					baddies.remove(enemies.get(enemyToFight));
 				}
 				break;
 			} else {
@@ -232,6 +267,11 @@ public class Battle {
 			if (i == targets.size() - 1) {            //Always attack the last person if you make it this far.
 				System.out.println(f.getName() + " is attacking " + targets.get(i).getName());
 				fight.melee(f, targets.get(i), bg);
+				if (!targets.get(i).isAlive()) {
+					turn.deleteNode(targets.get(i));
+					goodies.remove(targets.get(i));
+				}
+				checkIfWon();
 				return;
 			}
 
@@ -239,6 +279,11 @@ public class Battle {
 			if (random.nextInt(2) == 1) {
 				System.out.println(f.getName() + " is attacking " + targets.get(i).getName());
 				fight.melee(f, targets.get(i), bg);
+				if (!targets.get(i).isAlive()) {
+					turn.deleteNode(targets.get(i));
+					goodies.remove(targets.get(i));
+				}
+				checkIfWon();
 				return;
 			}
 		}
@@ -247,14 +292,17 @@ public class Battle {
 	private int findClosestEnemy(Fighter f, List<Fighter> targets) {
 		int closestTarget = 100;
 		int compareValue = 0;
-		int targetLocation = 100;
+		int targetLocation = 10000;
+
+		Tile fighterTile = bg.getTileByLocation(f.getCurrentLocation());
 		for (int i = 0; i < targets.size(); i++) {
 			for(int j = 0; j < 4; j++) {
-				compareValue = move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()],
-						bg.getDimensions()[targets.get(i).getCurrentLocation()].getAdjacentTiles()[j], f.getTeam());
+				Tile targetTile = bg.getTileByLocation(targets.get(i).getCurrentLocation());
+				compareValue = move.calculateDistance(bg.getDimensions()[fighterTile.getY_val()][fighterTile.getX_val()],
+						bg.getDimensions()[targetTile.getY_val()][targetTile.getX_val()].getAdjacentTiles()[j], f.getTeam());
 				if (compareValue < closestTarget) {
 					closestTarget = compareValue;
-					targetLocation = bg.getDimensions()[targets.get(i).getCurrentLocation()].getAdjacentTiles()[j].getLocation();
+					targetLocation = bg.getDimensions()[targetTile.getY_val()][targetTile.getX_val()].getAdjacentTiles()[j].getLocation();
 				}
 			}
 		}
@@ -262,12 +310,10 @@ public class Battle {
 	}
 
 	private boolean enemyMoveEasy(Fighter f, int closestTarget) {
-		if (move.calculateDistance(bg.getDimensions()[f.getCurrentLocation()], bg.getDimensions()[closestTarget - 1], f.getTeam()) > f.getMovement() + 1) {
+		Tile currentTile = bg.getTileByLocation(f.getCurrentLocation());
+		if (move.calculateDistance(currentTile, bg.getTileByLocation(closestTarget), f.getTeam()) > f.getMovement() + 1) {
 			return false; //Don't move if nothing in range
 		}
-
-		Tile fighterTile = bg.getDimensions()[f.getCurrentLocation()];
-		Tile targetTile = bg.getDimensions()[closestTarget - 1];
 
 		if(move.moveFighter(f, bg, closestTarget) != null){
 			return true;
