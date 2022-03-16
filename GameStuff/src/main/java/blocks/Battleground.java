@@ -10,8 +10,8 @@ public class Battleground {
 
 	private int x_MAX;
 	private int y_MAX;
-	private int numOfHeroes;
-	private int numOfVillains;
+	private List<Fighter> goodies = new ArrayList<>();
+	private List<Fighter> baddies = new ArrayList<>();
 	//Y value first, then X value
 	private Tile[][] dimensions;
 
@@ -19,14 +19,12 @@ public class Battleground {
 
 	}
 
-	public Battleground(int xMax, int yMax, int numOfHeroes, int numOfVillains) {
+	public Battleground(int xMax, int yMax) {
 		this.dimensions =  new Tile[yMax][xMax];
 		this.x_MAX = xMax;
 		this.y_MAX = yMax;
 		populateBattleground(this.dimensions, xMax, yMax);
 
-		this.numOfHeroes = numOfHeroes;
-		this.numOfVillains = numOfVillains;
 	}
 
 
@@ -57,6 +55,22 @@ public class Battleground {
 		return this;
 	}
 
+	public List<Fighter> getGoodies() {
+		return goodies;
+	}
+
+	public void setGoodies(List<Fighter> goodies) {
+		this.goodies = goodies;
+	}
+
+	public List<Fighter> getBaddies() {
+		return baddies;
+	}
+
+	public void setBaddies(List<Fighter> baddies) {
+		this.baddies = baddies;
+	}
+
 	public boolean isSpaceOpen(int location) {
 		if(location <= 0 || location > this.getX_Max()*this.getY_Max() ) {
 			return false;
@@ -70,19 +84,17 @@ public class Battleground {
 		}
 	}
 
-	public Battleground placeFighter(Fighter f, int location) {
+	public Battleground placeFighterByLocation(Fighter f, int location) {
 		f.setCurrentLocation(location);
 		this.dimensions[(location - 1) / this.getX_Max()][(location - 1) % this.getX_Max()].setFighterOnTile(f).setOpen(false);
 
 		return this;
 	}
 
-	public int getNumOfHeroes() {
-		return numOfHeroes;
-	}
-
-	public int getNumOfVillains() {
-		return numOfVillains;
+	public Battleground placeFighterByCoordinates(Fighter f, int xCor, int yCor){
+		this.dimensions[yCor][xCor].setFighterOnTile(f).setOpen(false);
+		f.setCurrentLocation(this.dimensions[yCor][xCor].getLocation());
+		return this;
 	}
 
 	public Battleground updateFighter(Fighter f) {
@@ -93,9 +105,9 @@ public class Battleground {
 			dimensions[(location - 1) / this.getX_Max()][(location - 1) % this.getX_Max()].setFighterOnTile(null).setOpen(true);
 			f.setCurrentLocation(8000000);
 			if(f.getTeam() == Team.GOOD){
-				this.numOfHeroes -= 1;
+				goodies.remove(f);
 			} else if(f.getTeam() == Team.BAD){
-				this.numOfVillains -= 1;
+				baddies.remove(f);
 			}
 		}
 
@@ -104,17 +116,16 @@ public class Battleground {
 	}
 
 	public List<Fighter> findAdjacentEnemies(Fighter f) {
-		int fighterXVal = (f.getCurrentLocation() - 1) % this.getX_Max();
-		int fighterYVal = (f.getCurrentLocation() - 1) / this.getX_Max();
-		Tile currentTile = this.getDimensions()[fighterYVal][fighterXVal];
+		Tile currentTile = getTileByLocation(f.getCurrentLocation());
 		List<Fighter> enemies = new ArrayList<>();
 
-		for (Tile t : currentTile.getAdjacentTiles()) {
-			if (t == null){
+		for (int position = 0; position < 4; position++) {
+			if (currentTile.getAdjacentTiles()[position] == null){
 				continue;
 			}
-			if(t.getFighterOnTile() != null && t.getFighterOnTile().getTeam() != f.getTeam()){
-				enemies.add(t.getFighterOnTile());
+			if(currentTile.getAdjacentTiles()[position].getFighterOnTile() != null &&
+					currentTile.getAdjacentTiles()[position].getFighterOnTile().getTeam() != f.getTeam()){
+				enemies.add(currentTile.getAdjacentTiles()[position].getFighterOnTile());
 			}
 		}
 //		if(isEnemyHere(fighterLocation - 1, f)) {

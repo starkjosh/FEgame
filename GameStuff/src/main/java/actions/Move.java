@@ -39,7 +39,7 @@ public class Move {
 		}
 
 		fighterTile.setFighterOnTile(null).setOpen(true);
-		bg.placeFighter(f, targetLocation);
+		bg.placeFighterByLocation(f, targetLocation);
 
 		return bg;
 	}
@@ -56,14 +56,13 @@ public class Move {
 		Tile fighterTile = bg.getTileByLocation(fighter.getCurrentLocation());
 
 		for (int xDist = -maxMovement; xDist <= maxMovement; xDist++){
-
 			if((0 > fighterTile.getX_val() + xDist) || (fighterTile.getX_val() + xDist >= bg.getX_Max())) {
 				continue;
 			}
 			if(xDist != 0) {
 				Tile potentialMove = dimensions[fighterTile.getY_val()][fighterTile.getX_val() + xDist];
 
-				if (calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()) {
+				if (potentialMove.isOpen() && calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()) {
 					spacesToMove.add(potentialMove);
 				}
 			}
@@ -73,7 +72,7 @@ public class Move {
 				if(0 <= fighterTile.getY_val() - yDist){
 					Tile potentialMove = dimensions[fighterTile.getY_val() - yDist][fighterTile.getX_val() + xDist];
 
-					if(calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
+					if(potentialMove.isOpen() && calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
 						spacesToMove.add(potentialMove);
 					}
 				}
@@ -81,7 +80,7 @@ public class Move {
 				if(fighterTile.getY_val() + yDist < bg.getY_Max()){
 					Tile potentialMove = dimensions[fighterTile.getY_val() + yDist][fighterTile.getX_val() + xDist];
 
-					if(calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
+					if(potentialMove.isOpen() && calculateDistance(fighterTile, potentialMove, fighter.getTeam()) <= fighter.getMovement()){
 						spacesToMove.add(potentialMove);
 					}
 				}
@@ -112,6 +111,7 @@ public class Move {
 				}
 			}
 		}
+
 		return calc;
 	}
 

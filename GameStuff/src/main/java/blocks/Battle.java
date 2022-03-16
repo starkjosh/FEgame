@@ -12,6 +12,7 @@ import enums.Team;
 import org.apache.commons.lang3.StringUtils;
 import utilities.ANSIColors;
 import utilities.CircularList;
+import utilities.MapBuilder;
 import utilities.Tile;
 
 public class Battle {
@@ -22,8 +23,7 @@ public class Battle {
 	private CircularList turn = new CircularList();
 	private Move move = new Move();
 	private Fight fight = new Fight();
-	private List<Fighter> goodies = new ArrayList<>();
-	private List<Fighter> baddies = new ArrayList<>();
+	private MapBuilder mapBuilder = new MapBuilder();
 
 
 	public void buildGame(String diff) {
@@ -33,7 +33,7 @@ public class Battle {
 			int numOfHeroes = 3;
 			int numOfVillains = 5;
 
-			bg = new Battleground(6, 6, numOfHeroes, numOfVillains);
+			bg = new Battleground(6, 6);
 
 			Fighter h1 = new Fighter(30, 5, "GOOD", "Pacman");
 			Fighter h2 = new Fighter(30, 5, "GOOD", "Mario");
@@ -44,14 +44,14 @@ public class Battle {
 			Fighter v4 = new Fighter(20, 4, "BAD", "Ghoul", 70);
 			Fighter v5 = new Fighter(20, 4, "BAD", "Goblin", 70);
 
-			bg.placeFighter(h1, 26);
-			bg.placeFighter(h2, 33);
-			bg.placeFighter(h3, 28);
-			bg.placeFighter(v1, 3);
-			bg.placeFighter(v2, 4);
-			bg.placeFighter(v3, 5);
-			bg.placeFighter(v4, 8);
-			bg.placeFighter(v5, 11);
+			bg.placeFighterByLocation(h1, 26);
+			bg.placeFighterByLocation(h2, 33);
+			bg.placeFighterByLocation(h3, 28);
+			bg.placeFighterByLocation(v1, 3);
+			bg.placeFighterByLocation(v2, 4);
+			bg.placeFighterByLocation(v3, 5);
+			bg.placeFighterByLocation(v4, 8);
+			bg.placeFighterByLocation(v5, 11);
 
 			turn.addNode(h1);
 			turn.addNode(h2);
@@ -62,16 +62,24 @@ public class Battle {
 			turn.addNode(v4);
 			turn.addNode(v5);
 
-			goodies.add(h1);
-			goodies.add(h2);
-			goodies.add(h3);
+			bg.getGoodies().add(h1);
+			bg.getGoodies().add(h2);
+			bg.getGoodies().add(h3);
 
-			baddies.add(v1);
-			baddies.add(v2);
-			baddies.add(v3);
-			baddies.add(v4);
-			baddies.add(v5);
+			bg.getBaddies().add(v1);
+			bg.getBaddies().add(v2);
+			bg.getBaddies().add(v3);
+			bg.getBaddies().add(v4);
+			bg.getBaddies().add(v5);
 
+		} else if(this.difficulty == Difficulty.valueOf("RANDOM")){
+			bg = mapBuilder.buildEasyGame();
+			for(Fighter good : bg.getGoodies()){
+				turn.addNode(good);
+			}
+			for(Fighter bad : bg.getBaddies()){
+				turn.addNode(bad);
+			}
 		}
 	}
 
@@ -84,7 +92,7 @@ public class Battle {
 		}
 		List<Tile> movablePlaces = move.findValidSpacesToMove(bg, f);
 
-		printMapWithMovableSpaces(movablePlaces, f.getTeam());
+		printMapWithMovableSpaces(movablePlaces);
 
 		if (f.getTeam() == Team.GOOD) {
 			System.out.println(f.getName() + ", what would you like to do?");
@@ -128,8 +136,9 @@ public class Battle {
 			if (bg.findAdjacentEnemies(f) != null) {
 				enemyAttackEasy(f, bg);
 			} else {
-				int closestEnemy = findClosestEnemy(f, this.goodies);
+				int closestEnemy = findClosestEnemy(f, bg.getGoodies());
 				if(enemyMoveEasy(f, closestEnemy)){
+					printMap();
 					enemyAttackEasy(f, bg);
 				}
 			}
@@ -153,8 +162,8 @@ public class Battle {
 	}
 
 	public void checkIfWon() {
-		int heroes = this.bg.getNumOfHeroes();
-		int baddies = this.bg.getNumOfVillains();
+		int heroes = this.bg.getGoodies().size();
+		int baddies = this.bg.getBaddies().size();
 
 		if (heroes <= 0) {
 			System.out.println("You have been defeated.");
@@ -184,7 +193,7 @@ public class Battle {
 		System.out.println();
 	}
 
-	public void printMapWithMovableSpaces(List<Tile> movableSpaces, Team fighterTeam) {
+	public void printMapWithMovableSpaces(List<Tile> movableSpaces) {
 
 		for (int i = 0; i < bg.getX_Max() * bg.getY_Max(); i++) {
 			if (i % bg.getX_Max() == 0) {
@@ -193,7 +202,7 @@ public class Battle {
 			Tile tileToPrint = bg.getTileByLocation(i + 1);
 			if (tileToPrint.getFighterOnTile() != null) {
 				Fighter f = tileToPrint.getFighterOnTile();
-				if (tileToPrint.getFighterOnTile().getTeam() != fighterTeam){
+				if (tileToPrint.getFighterOnTile().getTeam().equals(Team.BAD)){
 					System.out.print("|"+ ANSIColors.ANSI_RED + StringUtils.center( f.getName() + " (" + f.getHp() + "/"
 							+f.getMaxHP() + ")", 18) + ANSIColors.ANSI_RESET + "|");
 				} else {
@@ -229,7 +238,6 @@ public class Battle {
 
 				if (!enemies.get(enemyToFight).isAlive()) {
 					turn.deleteNode(enemies.get(enemyToFight));
-					baddies.remove(enemies.get(enemyToFight));
 				}
 				break;
 			} else {
@@ -269,7 +277,6 @@ public class Battle {
 				fight.melee(f, targets.get(i), bg);
 				if (!targets.get(i).isAlive()) {
 					turn.deleteNode(targets.get(i));
-					goodies.remove(targets.get(i));
 				}
 				checkIfWon();
 				return;
@@ -281,7 +288,6 @@ public class Battle {
 				fight.melee(f, targets.get(i), bg);
 				if (!targets.get(i).isAlive()) {
 					turn.deleteNode(targets.get(i));
-					goodies.remove(targets.get(i));
 				}
 				checkIfWon();
 				return;
@@ -298,7 +304,7 @@ public class Battle {
 		for (int i = 0; i < targets.size(); i++) {
 			for(int j = 0; j < 4; j++) {
 				Tile targetTile = bg.getTileByLocation(targets.get(i).getCurrentLocation());
-				compareValue = move.calculateDistance(bg.getDimensions()[fighterTile.getY_val()][fighterTile.getX_val()],
+				compareValue = move.calculateDistance(fighterTile,
 						bg.getDimensions()[targetTile.getY_val()][targetTile.getX_val()].getAdjacentTiles()[j], f.getTeam());
 				if (compareValue < closestTarget) {
 					closestTarget = compareValue;
